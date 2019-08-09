@@ -1,0 +1,45 @@
+---
+- name: Update the System.
+  yum:
+    name: "*"
+    state: latest
+    update_cache: yes
+
+- name: Install dependencies.
+  package:
+    name: ['java-1.8.0-openjdk', 'git', 'texlive-latex', 'wget', 'deltarpm']
+    state: present
+
+- name: Download Jenkins CI repo.
+  get_url:
+    url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+    dest: /etc/yum.repos.d/jenkins.repo
+
+- name: Import Jenkins CI key
+  rpm_key:
+    key: https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+    state: present
+
+- name: Install Jenkins CI.
+  yum:
+    name: jenkins
+    state: present
+
+- name: Start Jenkins CI.
+  service:
+    name: jenkins
+    state: started
+
+- wait_for:
+    port: 8080
+    host: "{{ inventory_hostname }}"
+    delay: 60
+  become: false
+  connection: local
+
+- name: Get Admin Password.
+  command: cat /var/lib/jenkins/secrets/initialAdminPassword
+  register: jenkins_password
+
+- name: Display Jenkinc CI Initial Password.
+  debug: msg={{ jenkins_password.stdout }}
